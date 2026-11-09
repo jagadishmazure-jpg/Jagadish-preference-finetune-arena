@@ -1,0 +1,10 @@
+{
+ "_note": "Open models used. GGUF models generate candidates and act as the judge (llama.cpp, CPU). The tiny model is tuned with LoRA in PyTorch on CPU. Weights are not committed; fetch_models.sh downloads and verifies them.",
+ "gguf": [
+  {"label": "qwen2.5-0.5b", "file": "qwen2.5-0.5b-instruct-q4_k_m.gguf", "url": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf", "sha256": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db", "license": "Apache-2.0"},
+  {"label": "qwen2.5-1.5b", "file": "qwen2.5-1.5b-instruct-q4_k_m.gguf", "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf", "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e", "license": "Apache-2.0"}
+ ],
+ "tuned": {"label": "smollm2-135m-instruct", "repo": "HuggingFaceTB/SmolLM2-135M-Instruct", "revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac", "weights_sha256": "5af571cbf074e6d21a03528d2330792e532ca608f24ac70a143f6b369968ab8c", "license": "Apache-2.0"},
+ "embedding": {"label": "bge-small-en-v1.5", "repo": "BAAI/bge-small-en-v1.5", "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a", "license": "MIT"},
+ "sampling": {"candidate_max_tokens": 120, "judge_max_tokens": 4, "n_ctx": 2048, "n_threads": 8}
+}

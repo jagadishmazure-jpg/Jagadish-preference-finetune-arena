@@ -1,0 +1,60 @@
+{
+ "configs": {
+  "dpo": {
+   "batch": 4,
+   "beta": 0.1,
+   "epochs": 2,
+   "lora_alpha": 16,
+   "lora_r": 8,
+   "lr": 0.0001,
+   "seed": 0
+  },
+  "dpo_no_sft": {
+   "batch": 4,
+   "beta": 0.1,
+   "epochs": 2,
+   "lora_alpha": 16,
+   "lora_r": 8,
+   "lr": 0.0001,
+   "seed": 0
+  },
+  "orpo": {
+   "batch": 4,
+   "epochs": 2,
+   "lam": 0.5,
+   "lora_alpha": 16,
+   "lora_r": 8,
+   "lr": 0.0002,
+   "seed": 0
+  },
+  "sft": {
+   "batch": 8,
+   "epochs": 2,
+   "lora_alpha": 16,
+   "lora_r": 8,
+   "lr": 0.0002,
+   "min_score": 0.8,
+   "seed": 0
+  }
+ },
+ "cpu": "x86_64",
+ "eval_prompts": 243,
+ "max_new_tokens": 96,
+ "model": "SmolLM2-135M-Instruct",
+ "sft_examples": 203,
+ "threads": 8,
+ "timing": {
+  "generate_base_careful_s": 122.8,
+  "generate_base_s": 105.3,
+  "generate_dpo_no_sft_s": 116.7,
+  "generate_dpo_s": 62.3,
+  "generate_orpo_s": 68.8,
+  "generate_sft_s": 64.3,
+  "train_dpo_no_sft_s": 290.9,
+  "train_dpo_s": 241.5,
+  "train_orpo_s": 216.5,
+  "train_sft_s": 59.2
+ },
+ "torch": "2.15.0+cpu",
+ "train_pairs": 251
+}
