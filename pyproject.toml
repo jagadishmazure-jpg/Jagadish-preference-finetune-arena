@@ -9,7 +9,7 @@ dependencies = ["numpy==2.5.4", "scikit-learn==1.9.1"]
 
 [project.optional-dependencies]
 dev = ["pytest==9.2.0", "ruff==0.17.4"]
-train = ["torch==2.15.0", "transformers==5.22.2"]
+train = ["torch==2.15.0+cpu", "transformers==5.22.2"]
 measure = ["llama-cpp-python==0.3.36", "sentence-transformers==6.2.0"]
 
 [build-system]
