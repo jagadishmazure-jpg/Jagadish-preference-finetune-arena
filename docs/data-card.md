@@ -34,7 +34,7 @@ up to 120 new tokens, seeds recorded per answer.
   88<!-- m:data/median_words_rejected -->; the chosen answer is the longer one in only
   13.9%<!-- m:data/chosen_longer/rate --> of train pairs. A model can learn "shorter is better" from this
   data, which is why length rules are reported as baselines.
-- All clear pairs (gap 0.1 or more) for reward models: train 1,303<!-- m:reward/_train_pairs -->, test
+- All clear pairs (gap 0.1 or more) for reward models: train 1303<!-- m:reward/_train_pairs -->, test
   857<!-- m:reward/_test_pairs -->.
 
 ## Measured outputs
@@ -48,6 +48,10 @@ replies), `data/train_log.jsonl`, `data/tune_manifest.json`, `data/emb/embedding
 Templated English only; one store; policies are short and single-fact. The careful style comes from
 the same model as the judge (self-preference is reported). Labels reflect the rubric, not people.
 
-Candidate and tuned answers are kept exactly as the models wrote them. Small models invent details,
-and some answers name real stores or carriers that have nothing to do with this project; those files
-are excluded from the brand check for that reason only.
+Small models sometimes invent real store, carrier or payment names in their answers. Every response
+in `data/candidates.jsonl` and `data/generations.jsonl` is passed through `check_brands.scrub`, which
+swaps each blocked name for a fixed fictional stand-in with the same number of words (so length metrics
+do not change). `gen_candidates.py` and `tune.py` scrub as they write. After scrubbing, 28 names in
+18 candidate answers and 1 name in 1 tuned/base answer were replaced; the brand check covers every
+tracked file. Rubric scores and pair selection were unchanged by the scrub; embeddings and the judge
+verdicts for the affected texts were re-measured.

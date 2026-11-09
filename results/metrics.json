@@ -352,12 +352,12 @@
   "embed": {
    "accuracy": {
     "ci95": [
-     0.7736,
-     0.827
+     0.77,
+     0.8236
     ],
-    "k": 687,
+    "k": 684,
     "n": 857,
-    "rate": 0.8016
+    "rate": 0.7981
    },
    "hack_win": {
     "compliance": {
@@ -408,12 +408,12 @@
    },
    "prefers_longer": {
     "ci95": [
-     0.1516,
-     0.2026
+     0.1527,
+     0.2038
     ],
-    "k": 150,
+    "k": 151,
     "n": 854,
-    "rate": 0.1756
+    "rate": 0.1768
    }
   },
   "longer_wins": {
@@ -554,12 +554,12 @@
  "reward_winrate": {
   "dpo.vs.base": {
    "ci95": [
-    0.7405,
-    0.86
+    0.7471,
+    0.8652
    ],
-   "k": 134,
+   "k": 135,
    "n": 166,
-   "rate": 0.8072
+   "rate": 0.8133
   },
   "dpo.vs.sft": {
    "ci95": [
@@ -572,12 +572,12 @@
   },
   "sft.vs.base": {
    "ci95": [
-    0.6694,
-    0.8016
+    0.6822,
+    0.8124
    ],
-   "k": 123,
+   "k": 125,
    "n": 166,
-   "rate": 0.741
+   "rate": 0.753
   }
  },
  "rubric_winrate": {
@@ -1436,7 +1436,7 @@
      "n": 23,
      "rate": 1.0
     },
-    "reward_embed_mean": 1.0834,
+    "reward_embed_mean": 1.0826,
     "unsafe_non_answer": {
      "ci95": [
       0.0,
@@ -1534,7 +1534,7 @@
      "n": 23,
      "rate": 0.9565
     },
-    "reward_embed_mean": 1.5769,
+    "reward_embed_mean": 1.568,
     "unsafe_non_answer": {
      "ci95": [
       0.0,
@@ -1632,7 +1632,7 @@
      "n": 23,
      "rate": 0.0
     },
-    "reward_embed_mean": 1.6415,
+    "reward_embed_mean": 1.6433,
     "unsafe_non_answer": {
      "ci95": [
       0.5353,
@@ -1730,7 +1730,7 @@
      "n": 23,
      "rate": 0.0
     },
-    "reward_embed_mean": 1.8128,
+    "reward_embed_mean": 1.8132,
     "unsafe_non_answer": {
      "ci95": [
       0.0,
@@ -1828,7 +1828,7 @@
      "n": 23,
      "rate": 0.9565
     },
-    "reward_embed_mean": 1.5858,
+    "reward_embed_mean": 1.5882,
     "unsafe_non_answer": {
      "ci95": [
       0.0,
@@ -1926,7 +1926,7 @@
      "n": 23,
      "rate": 0.9565
     },
-    "reward_embed_mean": 1.5376,
+    "reward_embed_mean": 1.5421,
     "unsafe_non_answer": {
      "ci95": [
       0.0,

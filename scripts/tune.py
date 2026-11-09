@@ -24,6 +24,9 @@ sys.path.insert(0, str(ROOT))
 
 import torch  # noqa: E402
 
+sys.path.insert(0, str(ROOT / "scripts"))
+from check_brands import scrub  # noqa: E402
+
 from prefarena import data, tuning  # noqa: E402
 from prefarena.prefs import best_worst_pairs, scored_candidates  # noqa: E402
 from prefarena.styles import CAREFUL_SYSTEM, DEPLOY_SYSTEM  # noqa: E402
@@ -60,6 +63,7 @@ def main() -> int:
     def gen(name: str, m, system=DEPLOY_SYSTEM):
         t0 = time.perf_counter()
         for r in tuning.generate(m, tok, eval_ps, system, MAX_NEW_TOKENS):
+            r["response"] = scrub(r["response"])[0]  # fictional names only, before anything scores it
             gens.append({"variant": name, **r})
         timing[f"generate_{name}_s"] = round(time.perf_counter() - t0, 1)
         print(name, "generated", flush=True)
