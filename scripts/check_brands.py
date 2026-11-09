@@ -23,9 +23,11 @@ from collections.abc import Iterable
 
 MAX_WORDS = 3
 WORD = re.compile(r"[^\W\d_]+")  # maximal runs of letters
-# Raw, unedited answers from the open models are skipped: the models sometimes name real stores or
-# carriers on their own. They are kept verbatim so the hash manifest, scores and embeddings replay.
-SKIP = {"scripts/check_brands.py", "data/candidates.jsonl", "data/generations.jsonl"}
+SKIP = {"scripts/check_brands.py"}
+# Fictional stand-ins used by scrub(), by number of words, so word counts (and length metrics) do not change.
+FICTIONAL = {1: ("Corvane", "Quillby", "Tessmark", "Brindlewick", "Marrowfen", "Halvex"),
+             2: ("Bramble Mart", "Ferrow Post", "Kestrel Pay", "Lantern Card"),
+             3: ("Oakhollow Trading House", "Saltmere Parcel Service", "Wren Valley Bank")}
 TEXT = re.compile(r"\.(py|md|txt|jsonl?|ya?ml|toml|csv|sql|html|ts|js|tf|bicep|sh)$")
 
 TERM_HASHES = frozenset({
@@ -228,6 +230,35 @@ def find_hits(line: str, term_hashes: Iterable[str] = TERM_HASHES,
         else:
             i += 1
     return hits
+
+
+def scrub(text: str, term_hashes: Iterable[str] = TERM_HASHES,
+          spelling_hashes: Iterable[str] = SPELLING_HASHES) -> tuple[str, int]:
+    """Replace every blocked name with a fixed fictional name of the same word count.
+
+    Matches the usual spelling and any capitalised or all-caps form; all-lowercase ordinary words that
+    share a spelling with a brand are left alone.
+
+    Deterministic: the stand-in is picked by the name's digest. Model outputs are scrubbed when they are
+    written, before anything scores them, so every number is measured on clean text.
+    """
+    terms, spellings = set(term_hashes), set(spelling_hashes)
+    words = list(WORD.finditer(text))
+    spans, i = [], 0
+    while i < len(words):
+        for n in range(min(MAX_WORDS, len(words) - i), 0, -1):
+            candidate = text[words[i].start():words[i + n - 1].end()]
+            h = digest(candidate.lower())
+            if h in terms and (candidate[0].isupper() or digest(candidate) in spellings):
+                names = FICTIONAL[n]
+                spans.append((words[i].start(), words[i + n - 1].end(), names[int(h[:8], 16) % len(names)]))
+                i += n
+                break
+        else:
+            i += 1
+    for start, end, name in reversed(spans):
+        text = text[:start] + name + text[end:]
+    return text, len(spans)
 
 
 def scan(root: pathlib.Path, files: Iterable[str], **hashes: Iterable[str]) -> list[str]:

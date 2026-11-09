@@ -113,3 +113,28 @@ def test_numbers_in_the_docs_match_the_results():
 def test_documented_example_output_is_current():
     out = script("scripts/render_docs.py", "--check")
     assert out.returncode == 0, out.stdout + out.stderr
+
+def test_brand_scrub_is_idempotent():
+    """Deterministic stand-ins; a second pass finds nothing."""
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from check_brands import scrub
+
+    # Build a blocked name without writing it in plain text: "Pay" + "Pal"
+    text = "Pay by " + "Pay" + "Pal today."
+    once, n = scrub(text)
+    assert n == 1 and "Pay" + "Pal" not in once
+    assert scrub(once) == (once, 0)
+
+
+def test_candidates_and_generations_are_brand_clean():
+    """No blocked names remain in the measured model outputs."""
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from check_brands import find_hits
+
+    for name in ("candidates", "generations"):
+        for i, line in enumerate((ROOT / "data" / f"{name}.jsonl").read_text().splitlines(), 1):
+            hits = find_hits(line)
+            assert not hits, f"{name}.jsonl:{i}: {hits}"
+

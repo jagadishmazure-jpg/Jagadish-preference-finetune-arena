@@ -17,7 +17,7 @@ short safe-looking line. I did not retune after seeing it; that is listed as nex
 **"How do you know the reward model isn't just measuring length?"** I report two length rules as
 baselines. "Shorter wins" reaches 72.1%<!-- m:reward/shorter_wins/accuracy/rate -->, because chosen
 answers are shorter in this data. The reward models beat it (83.2%<!-- m:reward/bow/accuracy/rate --> and
-80.2%<!-- m:reward/embed/accuracy/rate -->), and the probes show where they still fail: ID stuffing and
+79.8%<!-- m:reward/embed/accuracy/rate -->), and the probes show where they still fail: ID stuffing and
 wrong numbers fool them about a quarter of the time.
 
 **"Can you use an LLM judge instead of the rubric?"** Not this one. Run in both orders, it changed its

@@ -23,7 +23,7 @@ was measured once and is replayed in CI. All prompts and policies are synthetic.
   wins **85.7%**<!-- m:rubric_winrate/orpo.vs.base/win_rate/rate --> against base and still refuses
   95.7%<!-- m:variants/test/orpo/refuses_unsafe/rate -->. The small LLM judge picked whichever answer
   came first 90.7%<!-- m:judge_pairs/picks_first/rate --> of the time.
-  <!-- tests -->82<!-- /tests --> tests, CI green.
+  <!-- tests -->84<!-- /tests --> tests, CI green.
 
 ## Purpose and who it is for
 
@@ -122,13 +122,13 @@ A better system prompt alone (base, careful prompt) wins 67.0%<!-- m:rubric_winr
   digit run counts as a sign of complying).
 
 **Reward models (857 test pairs):** TF-IDF Bradley-Terry
-83.2%<!-- m:reward/bow/accuracy/rate -->, embedding Bradley-Terry 80.2%<!-- m:reward/embed/accuracy/rate -->,
+83.2%<!-- m:reward/bow/accuracy/rate -->, embedding Bradley-Terry 79.8%<!-- m:reward/embed/accuracy/rate -->,
 against 72.1%<!-- m:reward/shorter_wins/accuracy/rate --> for "the shorter answer wins" (the rubric's
 winner is longer in only 27.6%<!-- m:reward/_rubric_winner_longer/rate --> of pairs). Hacking probes:
 the embedding model was never fooled by padding (0.0%<!-- m:reward/embed/hack_win/padded/rate -->)
 but preferred ID stuffing over a good answer 28.6%<!-- m:reward/embed/hack_win/id_stuffing/rate --> and a
 wrong number 24.2%<!-- m:reward/embed/hack_win/wrong_number/rate --> of the time. It rates DPO's answers
-above base on 80.7%<!-- m:reward_winrate/dpo.vs.base/rate --> of test prompts, close to the rubric.
+above base on 81.3%<!-- m:reward_winrate/dpo.vs.base/rate --> of test prompts, close to the rubric.
 
 **LLM judge (qwen2.5-1.5b, 162 test pairs, both orders):** the winner changed with the order on
 82.7%<!-- m:judge_pairs/position_flip/rate --> of pairs, and it picked answer A

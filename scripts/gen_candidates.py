@@ -15,6 +15,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+sys.path.insert(0, str(ROOT / "scripts"))
+from check_brands import scrub  # noqa: E402
+
 from prefarena import data  # noqa: E402
 from prefarena.company import rng  # noqa: E402
 from prefarena.styles import STYLES, messages  # noqa: E402
@@ -46,7 +49,7 @@ def main() -> int:
                     r = llm.create_chat_completion(messages=messages(p, system, ctx), temperature=temp, seed=seed,
                                                    max_tokens=s["candidate_max_tokens"])
                     fh.write(json.dumps({"id": p["id"], "style": style, "model": model, "seed": seed,
-                                         "response": r["choices"][0]["message"]["content"].strip(),
+                                         "response": scrub(r["choices"][0]["message"]["content"].strip())[0],
                                          "completion_tokens": r["usage"]["completion_tokens"],
                                          "latency_s": round(time.perf_counter() - t0, 3)}) + "\n")
                     fh.flush()
