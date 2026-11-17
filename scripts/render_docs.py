@@ -35,7 +35,8 @@ def run(cmd: str) -> str:
 
 def main() -> int:
     check = "--check" in sys.argv
-    files = [ROOT / "README.md", *sorted((ROOT / "docs").rglob("*.md"))]
+    files = [ROOT / "README.md", *sorted((ROOT / "docs").rglob("*.md")),
+             *sorted((ROOT / "llm-foundations").rglob("*.md"))]
     cache: dict[str, str] = {}
     drift = []
     for path in files:

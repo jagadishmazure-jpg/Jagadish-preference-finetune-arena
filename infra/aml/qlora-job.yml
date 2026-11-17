@@ -1,0 +1,32 @@
+# QLoRA SFT of Phi-3.5-mini on one A100 (or H100: change compute to azureml:gpu-h100).
+# WRITTEN, NOT RUN. Submit only by hand, after a reviewer turns the deploy workflow on:
+#   az ml job create -f infra/aml/qlora-job.yml -g rg-prefarena-dev -w mlw-prefarena-dev
+# The cluster itself is not in the Terraform. Create gpu-a100 as Standard_NC24ads_A100_v4,
+# min nodes 0, max 1, no SSH, local auth off, then delete it when the job finishes.
+# Alternate SKU for the same script: Standard_NC40ads_H100_v5 (gpu-h100).
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: qlora-sft-phi35-mini
+experiment_name: preference-arena-qlora
+compute: azureml:gpu-a100
+tags:
+  method: qlora
+  base_model: microsoft/Phi-3.5-mini-instruct
+  gpu_sku_a100: Standard_NC24ads_A100_v4
+  gpu_sku_h100: Standard_NC40ads_H100_v5
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04:latest
+  conda_file: environment-gpu.yml
+code: ../..
+command: >-
+  python scripts/qlora_sft.py
+  --model microsoft/Phi-3.5-mini-instruct
+  --output ${{outputs.adapter}}
+outputs:
+  adapter:
+    type: uri_folder
+    name: phi35-qlora-adapter
+limits:
+  timeout: 7200
+resources:
+  instance_count: 1

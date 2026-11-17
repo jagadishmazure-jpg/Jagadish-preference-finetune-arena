@@ -1,0 +1,19 @@
+# GPU image for TRL PPO. WRITTEN, NOT RUN.
+# PPOTrainer was removed in TRL 1.13.0. 1.11.0 is the last feature release that still ships
+# trl.experimental.ppo.PPOTrainer. QLoRA SFT uses TRL 1.18.1 in environment-gpu.yml instead.
+name: prefarena-ppo-gpu
+channels: [conda-forge]
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cu130
+      - torch==2.14.1+cu130
+      - transformers==5.22.2
+      - peft==0.21.3
+      - trl[peft]==1.11.0
+      - bitsandbytes==0.50.2
+      - accelerate==1.16.0
+      - datasets==5.2.0
+      - numpy==2.5.4
+      - scikit-learn==1.9.1

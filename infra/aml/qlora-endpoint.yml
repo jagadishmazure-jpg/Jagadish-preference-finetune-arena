@@ -1,0 +1,12 @@
+# Managed online endpoint for the QLoRA adapter. WRITTEN, NOT RUN.
+# Online endpoints do not scale to zero: instance_count on the deployment is at least 1,
+# so do not create this until someone has accepted the hourly GPU charge.
+#   az ml online-endpoint create -f infra/aml/qlora-endpoint.yml -g rg-prefarena-dev -w mlw-prefarena-dev
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineEndpoint.schema.json
+name: prefarena-qlora
+auth_mode: aad_token
+description: Phi-3.5-mini QLoRA adapter. Entra auth only. Not created by CI.
+properties:
+  public_network_access: disabled
+tags:
+  method: qlora

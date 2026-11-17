@@ -1,0 +1,17 @@
+# Register the adapter folder produced by qlora-job.yml. WRITTEN, NOT RUN.
+# Point path at the downloaded job output before:
+#   az ml model create -f infra/aml/qlora-model.yml -g rg-prefarena-dev -w mlw-prefarena-dev
+# The base weights are not in this asset. Scoring loads them from the model id in properties.
+$schema: https://azuremlschemas.azureedge.net/latest/model.schema.json
+name: phi35-qlora-adapter
+path: ./outputs/phi35-qlora
+type: custom_model
+description: QLoRA adapter for Phi-3.5-mini-instruct. Base weights stay in the base model.
+properties:
+  base_model: microsoft/Phi-3.5-mini-instruct
+  method: qlora
+  lora_r: "16"
+  lora_alpha: "32"
+  quant: nf4-double
+tags:
+  base_model: microsoft/Phi-3.5-mini-instruct

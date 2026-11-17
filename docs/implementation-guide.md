@@ -53,3 +53,12 @@ ID stuffing, reward-model preferences on tuned answers, training curves, and the
 
 `scripts/manifest.py` writes SHA-256 of every measured file. CI checks the manifest, recomputes every
 metric, and checks that each number in the docs matches.
+
+## 9. QLoRA, PPO, and the foundations folder
+
+These are separate from the measured 135M run. `prefarena/qlora.py` is NF4, the PEFT LoRA formula,
+and the TRL `SFTTrainer` builder. `prefarena/ppo.py` is sequence-level PPO against `reward.BT`, plus
+the TRL 1.11 `PPOTrainer` builder. `python scripts/compare_methods.py` prints the CPU smoke and the
+formula estimates. `llm-foundations/` is the mini-GPT and the classic DL/NLP scripts;
+`python scripts/foundations_smoke.py` is the CPU check. The Azure ML YAML under `infra/aml/` and
+`llm-foundations/azure/` is not executed here.

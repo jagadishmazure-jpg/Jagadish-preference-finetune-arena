@@ -1,0 +1,23 @@
+# Train the mini-GPT on a GPU cluster. WRITTEN, NOT RUN.
+# CPU smoke (what CI runs): python scripts/foundations_smoke.py
+# Submit only after the same review gate as the other Azure ML jobs:
+#   az ml job create -f llm-foundations/azure/minigpt-job.yml -g rg-prefarena-dev -w mlw-prefarena-dev
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: minigpt-fenwold-corpus
+experiment_name: llm-foundations
+compute: azureml:gpu-a100
+tags:
+  method: minigpt
+  gpu_sku_a100: Standard_NC24ads_A100_v4
+  gpu_sku_h100: Standard_NC40ads_H100_v5
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04:latest
+  conda_file: ../../infra/aml/environment-gpu.yml
+code: ../..
+command: >-
+  python -c "import sys; sys.path.insert(0, 'llm-foundations'); from llmfound.minigpt import prepare, MiniGPT, train_steps; tok, ids = prepare(num_merges=40, repeats=8); m = MiniGPT(tok.vocab_size, n_embd=128, n_head=4, n_layer=4, block_size=128); print(train_steps(m, ids, steps=400, batch=16, block=64, lr=3e-4, seed=0)[-1])"
+limits:
+  timeout: 3600
+resources:
+  instance_count: 1

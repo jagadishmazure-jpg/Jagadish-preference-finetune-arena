@@ -1,0 +1,20 @@
+# Azure OpenAI / Microsoft Foundry managed fine-tune. WRITTEN, NOT RUN.
+# This is not an Azure ML command job. Submit it with the Foundry fine-tuning API
+# (or Azure OpenAI fine-tunes) after a reviewer accepts the token charge.
+# Training USD = tokens * epochs * $3.30 / 1e6 at the published GPT-4o mini rate
+# ($0.0033 per 1K tokens). Recheck the catalogue: model availability moves.
+model: gpt-4o-mini
+training_type: Global
+method: supervised
+hyperparameters:
+  n_epochs: 3
+  batch_size: 1
+  learning_rate_multiplier: 1
+training_file: file-placeholder
+validation_file: null
+suffix: fenwold-sft
+# The training file is JSONL of {"messages": [...]} built from the same chosen answers
+# as scripts/qlora_sft.py (train split, rubric score >= 0.8). Do not upload customer data.
+notes:
+  - No endpoint is created here. Hosting a tuned model is a separate hourly charge.
+  - Compare with QLoRA using scripts/compare_methods.py before paying for either.

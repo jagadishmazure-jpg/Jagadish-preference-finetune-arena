@@ -68,10 +68,14 @@ def _opt(model, lr: float):
     return torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=lr, weight_decay=0.0)
 
 
-def train_sft(model, tok, examples: list[tuple], cfg: dict, log: list) -> None:
-    """examples: (prompt_ids, response_ids). Mean token NLL of the response."""
+def train_sft(model, tok, examples: list[tuple], cfg: dict, log: list, apply=None) -> None:
+    """examples: (prompt_ids, response_ids). Mean token NLL of the response.
+
+    `apply` swaps in the adapters (hand-written LoRA by default). QLoRA passes its own
+    so the same loop can train a 4-bit base without a second copy of the optimiser code.
+    """
     torch.manual_seed(cfg["seed"])
-    apply_lora(model, r=cfg["lora_r"], alpha=cfg["lora_alpha"])
+    (apply or apply_lora)(model, r=cfg["lora_r"], alpha=cfg["lora_alpha"])
     opt, step = _opt(model, cfg["lr"]), 0
     model.train()
     for ep in range(cfg["epochs"]):

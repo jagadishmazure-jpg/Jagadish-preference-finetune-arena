@@ -23,7 +23,7 @@ was measured once and is replayed in CI. All prompts and policies are synthetic.
   wins **85.7%**<!-- m:rubric_winrate/orpo.vs.base/win_rate/rate --> against base and still refuses
   95.7%<!-- m:variants/test/orpo/refuses_unsafe/rate -->. The small LLM judge picked whichever answer
   came first 90.7%<!-- m:judge_pairs/picks_first/rate --> of the time.
-  <!-- tests -->84<!-- /tests --> tests, CI green.
+  <!-- tests -->104<!-- /tests --> tests, CI green.
 
 ## Purpose and who it is for
 
@@ -243,6 +243,12 @@ Optional cloud: an Azure ML pipeline (Microsoft Foundry hub-based project) that 
 on a CPU cluster that scales to zero, in Terraform and Bicep, gated off. See
 [docs/deployment.md](docs/deployment.md) for the resources and a dated cost estimate.
 
+QLoRA SFT and PPO for Phi-3.5-mini are written as Azure ML GPU jobs (A100 or H100) and have not been
+run. A CPU smoke compares hand-written LoRA, PEFT-formula LoRA, NF4 QLoRA and PPO-versus-DPO without
+a download: [docs/method-comparison.md](docs/method-comparison.md). A separate
+[llm-foundations](llm-foundations/README.md) folder holds a mini-GPT (RoPE, KV cache, sampling) and
+small MLP, CNN, BiLSTM, DistilBERT and PII examples. Those are not part of the preference pipeline.
+
 ## Guardrails and security controls
 
 | Control | Where |
@@ -286,12 +292,17 @@ Threat model (OWASP LLM Top 10, reward hacking, data poisoning): [docs/threat-mo
 | Rubric, reward-model and judge evaluation with Wilson intervals, sign tests, position and length bias | Built |
 | Safety regression set, release rule on dev, CI gate | Built |
 | Azure ML pipeline, CPU cluster, Terraform + Bicep, deploy workflow | Written, not run (gated off) |
+| QLoRA SFT (PEFT + TRL + bitsandbytes) on Phi-3.5-mini, adapter registration, online endpoint | Written, not run (needs an A100 or H100). CPU smoke is tested |
+| PPO with the Bradley-Terry reward model, compared with DPO on a tiny model | CPU smoke tested. TRL's PPOTrainer job is written, not run |
+| Mini-GPT, MLP/CNN, BiLSTM vs DistilBERT, spaCy PII (`llm-foundations/`) | CPU smoke tested. GPU job for the mini-GPT is written, not run |
 | A KL or SFT term in DPO, more unsafe pairs, several seeds, a larger model | Planned |
 | Human preference labels to check the rubric; a stronger judge; multi-turn prompts | Planned |
 
 ## Docs
 
 - [Evaluation report](results/report.md) (generated)
+- [LoRA / QLoRA / PPO comparison](docs/method-comparison.md)
+- [llm-foundations](llm-foundations/README.md) (mini-GPT and classic DL/NLP, separate from this pipeline)
 - [Data card](docs/data-card.md)
 - [Implementation guide](docs/implementation-guide.md)
 - [Interview points](docs/interview-points.md)

@@ -1,0 +1,18 @@
+# GPU image for QLoRA SFT. WRITTEN, NOT RUN.
+# torch is the CUDA wheel. Do not point this file at the CPU index in requirements-train.txt.
+name: prefarena-qlora-gpu
+channels: [conda-forge]
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cu130
+      - torch==2.14.1+cu130
+      - transformers==5.22.2
+      - peft==0.21.3
+      - trl==1.18.1
+      - bitsandbytes==0.50.2
+      - accelerate==1.16.0
+      - datasets==5.2.0
+      - numpy==2.5.4
+      - scikit-learn==1.9.1
