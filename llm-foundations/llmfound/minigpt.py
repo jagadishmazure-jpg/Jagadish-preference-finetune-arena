@@ -164,7 +164,11 @@ def prepare(num_merges: int = 20, repeats: int = 4) -> tuple[ByteBPE, torch.Tens
     return tok, ids
 
 
-def train_steps(model: MiniGPT, ids: torch.Tensor, steps: int, batch: int, block: int, lr: float, seed: int) -> list[float]:
+def train_steps(model: MiniGPT, ids: torch.Tensor, steps: int, batch: int, block: int, lr: float, seed: int,
+                device: torch.device | str | None = None) -> list[float]:
+    if device is not None:
+        model.to(device)
+        ids = ids.to(device)
     generator = torch.Generator()
     generator.manual_seed(seed)
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
@@ -185,6 +189,15 @@ def train_steps(model: MiniGPT, ids: torch.Tensor, steps: int, batch: int, block
         losses.append(round(float(loss.detach()), 4))
     model.eval()
     return losses
+
+
+def save_checkpoint(path: Path, model: MiniGPT, tok: ByteBPE, config: dict) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    torch.save({
+        "state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()},
+        "merges": tok.merges,
+        "config": config,
+    }, path / "minigpt.pt")
 
 
 def attention_svg(weights: torch.Tensor, tokens: list[str]) -> str:

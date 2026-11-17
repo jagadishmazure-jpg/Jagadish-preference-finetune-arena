@@ -19,6 +19,7 @@ from prefarena.ppo import (  # noqa: E402
     BradleyTerryRewardModel,
     build_trl_ppo_trainer,
     compare_with_dpo,
+    completion_text,
     toy_groups,
 )
 from prefarena.qlora import PHI35  # noqa: E402
@@ -74,8 +75,11 @@ def main() -> int:
     def decode_batch(input_ids):
         items = []
         for row in input_ids.tolist():
-            text = tok.decode([t for t in row if t != tok.pad_token_id], skip_special_tokens=True)
-            items.append(({"prompt": text}, text))
+            ids = [t for t in row if t != tok.pad_token_id]
+            # Keep the assistant marker so the reward sees only the completion, not the question.
+            text = tok.decode(ids, skip_special_tokens=False)
+            answer = completion_text(text)
+            items.append(({"prompt": answer}, answer))
         return items
 
     reward = BradleyTerryRewardModel(bt, decode_batch)

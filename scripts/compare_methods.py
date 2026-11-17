@@ -23,7 +23,7 @@ from prefarena.qlora import (  # noqa: E402
     H100_USD_PER_HOUR,
     PHI35,
     aoai_training_usd,
-    lora_trainable,
+    phi_attention_lora_params,
     smoke_flags,
     weight_bytes,
 )
@@ -90,7 +90,7 @@ def main() -> int:
         f"phi35_params: {PHI35['params']}",
         f"phi35_fp16_gib: {gib(phi_fp16)}",
         f"phi35_nf4_gib: {gib(phi_nf4)}",
-        f"phi35_lora_trainable: {lora_trainable(PHI35['layers'], PHI35['hidden'], 16)}",
+        f"phi35_lora_trainable: {phi_attention_lora_params(PHI35['layers'], PHI35['hidden'], 16)}",
         f"a100_usd_per_hour: {A100_USD_PER_HOUR:.3f}",
         f"h100_usd_per_hour: {H100_USD_PER_HOUR:.3f}",
         f"aoai_model: {AOAI_MODEL}",

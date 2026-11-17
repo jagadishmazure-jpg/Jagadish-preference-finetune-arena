@@ -35,17 +35,31 @@ def parse_request(raw: str) -> dict:
     return {"prompt": prompt, "max_new_tokens": n}
 
 
+def _import_repo():
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+
+
 def init():
     global _model, _tok
+    _import_repo()
     from peft import PeftModel
     from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    from prefarena.qlora import serving_quant_config
 
     model_dir = os.environ["AZUREML_MODEL_DIR"]
     base = os.environ.get("BASE_MODEL", "microsoft/Phi-3.5-mini-instruct")
     _tok = AutoTokenizer.from_pretrained(base)
     if _tok.pad_token_id is None:
         _tok.pad_token = _tok.eos_token
-    base_model = AutoModelForCausalLM.from_pretrained(base, device_map="auto", dtype="auto")
+    # NF4 weights, float16 compute: the T4 deployment has no bfloat16.
+    base_model = AutoModelForCausalLM.from_pretrained(
+        base, device_map="auto", quantization_config=serving_quant_config())
     _model = PeftModel.from_pretrained(base_model, model_dir)
     _model.eval()
 
@@ -54,9 +68,13 @@ def run(raw: str) -> str:
     request = parse_request(raw)
     if _model is None or _tok is None:
         raise RuntimeError("init was not called")
+    _import_repo()
     import torch
 
-    messages = [{"role": "user", "content": request["prompt"]}]
+    from prefarena.qlora import serving_messages
+
+    # prompt is the training user turn: policy text plus the customer question.
+    messages = serving_messages(request["prompt"])
     ids = _tok.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt")
     ids = ids.to(_model.device)
     with torch.no_grad():

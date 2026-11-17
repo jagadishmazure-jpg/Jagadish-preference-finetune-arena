@@ -70,15 +70,32 @@ H100_USD_PER_HOUR = 6.980
 AOAI_USD_PER_MILLION_TOKENS = 3.30
 AOAI_MODEL = "gpt-4o-mini"
 
-QLORA_TARGETS = ("q_proj", "k_proj", "v_proj", "o_proj")
+# The CPU smoke is a tiny Llama, which has separate q, k and v projections.
+# Phi-3.5-mini fuses those three into qkv_proj (hidden -> 3 * hidden) plus o_proj.
+LLAMA_TARGETS = ("q_proj", "k_proj", "v_proj", "o_proj")
+PHI35_TARGETS = ("qkv_proj", "o_proj")
+QLORA_TARGETS = LLAMA_TARGETS
 QLORA_R = 16
 QLORA_ALPHA = 32
 QLORA_DROPOUT = 0.05
 
 
+def lora_targets_for(model_id: str) -> tuple[str, ...]:
+    if "phi" in model_id.lower():
+        return PHI35_TARGETS
+    return LLAMA_TARGETS
+
+
 def lora_trainable(layers: int, hidden: int, r: int, matrices: int = 4) -> int:
-    """A and B on each attention projection: 2 * hidden * r per matrix."""
+    """A and B on each square attention projection: 2 * hidden * r per matrix."""
     return layers * matrices * 2 * hidden * r
+
+
+def phi_attention_lora_params(layers: int = 32, hidden: int = 3072, r: int = 16) -> int:
+    """Trainable count for Phi-3.5 attention LoRA: fused qkv_proj plus o_proj."""
+    qkv = hidden * r + (3 * hidden) * r
+    out_proj = hidden * r + hidden * r
+    return layers * (qkv + out_proj)
 
 
 def nf4_storage_bytes(n_params: int, block: int = 64, double_quant: bool = True, scale_block: int = 256) -> int:
@@ -115,15 +132,19 @@ def gpu_job_usd(hours: float, sku: str = A100_SKU) -> float:
 
 
 def peft_lora_config_kwargs(r: int = QLORA_R, alpha: int = QLORA_ALPHA, dropout: float = QLORA_DROPOUT,
-                            targets: tuple[str, ...] = QLORA_TARGETS) -> dict:
-    """Keyword arguments for ``peft.LoraConfig``. Kept here so CI can check them without installing PEFT."""
+                            targets: tuple[str, ...] | None = None, model_id: str | None = None) -> dict:
+    """Keyword arguments for ``peft.LoraConfig``. Kept here so CI can check them without installing PEFT.
+
+    The default target list is Phi-3.5's fused attention projections. Pass ``LLAMA_TARGETS`` for a Llama.
+    """
+    chosen = targets if targets is not None else lora_targets_for(model_id or PHI35["model_id"])
     return {
         "r": r,
         "lora_alpha": alpha,
         "lora_dropout": dropout,
         "bias": "none",
         "task_type": "CAUSAL_LM",
-        "target_modules": list(targets),
+        "target_modules": list(chosen),
     }
 
 
@@ -137,11 +158,27 @@ def bitsandbytes_config_kwargs() -> dict:
     }
 
 
-def build_peft_config():
+def build_peft_config(model_id: str | None = None):
     """Real ``peft.LoraConfig``. Raises ImportError when PEFT is not installed (the CPU smoke does not need it)."""
     from peft import LoraConfig
 
-    return LoraConfig(**peft_lora_config_kwargs())
+    return LoraConfig(**peft_lora_config_kwargs(model_id=model_id or PHI35["model_id"]))
+
+
+def serving_quant_config():
+    """4-bit load for the T4 deployment. T4 has no bfloat16, so the compute dtype is float16.
+
+    Training on A100/H100 uses ``build_bitsandbytes_config`` (bfloat16) instead.
+    """
+    import torch as th
+    from transformers import BitsAndBytesConfig
+
+    return BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=th.float16,
+    )
 
 
 def build_bitsandbytes_config():
@@ -351,6 +388,24 @@ def smoke_flags(epochs: int = 8) -> dict:
         "qlora_loss_fell": q1 < q0,
         "peft_matches_handwritten": abs(h0 - p0) < 1e-4 and abs(h1 - p1) < 1e-4,
     }
+
+
+def supervised_messages(prompt: dict, response: str) -> list[dict]:
+    """Chat messages for one SFT example: deploy system prompt, policy context, then the chosen answer."""
+    from .styles import DEPLOY_SYSTEM, messages
+
+    return messages(prompt, DEPLOY_SYSTEM) + [{"role": "assistant", "content": response}]
+
+
+def serving_messages(user_content: str) -> list[dict]:
+    """The same system prompt and user turn the adapter was trained on, without the answer yet.
+
+    ``user_content`` must be ``styles.user_message(prompt)`` (policy plus the customer question).
+    The scoring script sends these messages through the model's chat template.
+    """
+    from .styles import DEPLOY_SYSTEM
+
+    return [{"role": "system", "content": DEPLOY_SYSTEM}, {"role": "user", "content": user_content}]
 
 
 def production_rows() -> list[dict]:

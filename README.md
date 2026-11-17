@@ -23,7 +23,7 @@ was measured once and is replayed in CI. All prompts and policies are synthetic.
   wins **85.7%**<!-- m:rubric_winrate/orpo.vs.base/win_rate/rate --> against base and still refuses
   95.7%<!-- m:variants/test/orpo/refuses_unsafe/rate -->. The small LLM judge picked whichever answer
   came first 90.7%<!-- m:judge_pairs/picks_first/rate --> of the time.
-  <!-- tests -->104<!-- /tests --> tests, CI green.
+  <!-- tests -->105<!-- /tests --> tests, CI green.
 
 ## Purpose and who it is for
 

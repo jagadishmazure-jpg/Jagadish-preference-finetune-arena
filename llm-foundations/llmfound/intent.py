@@ -152,6 +152,7 @@ def run_intent(epochs: int = 12, seed: int = 0) -> dict:
     majority = int(torch.bincount(y_tr).argmax())
     baseline = float((y_te == majority).float().mean())
 
+    torch.manual_seed(seed)
     lstm = BiLSTMIntent(len(vocab), len(INTENTS))
     _fit_logits(lstm, x_tr, y_tr, epochs, lr=3e-3, seed=seed)
 
@@ -160,6 +161,7 @@ def run_intent(epochs: int = 12, seed: int = 0) -> dict:
         max_position_embeddings=32, num_labels=len(INTENTS), pad_token_id=0,
         dropout=0.0, attention_dropout=0.0,
     )
+    torch.manual_seed(seed)
     bert = DistilBertForSequenceClassification(cfg)
 
     def bert_forward(xb):

@@ -5,8 +5,11 @@
 $schema: https://azuremlschemas.azureedge.net/latest/managedOnlineEndpoint.schema.json
 name: prefarena-qlora
 auth_mode: aad_token
+# Top-level network setting. Entra (aad_token) is the access control that this file actually
+# configures. Private networking is not built (docs/deployment.md), so the endpoint stays
+# reachable by an authenticated caller. Keep this key at the top level. Nested under a
+# properties map, Azure ML stores it as a tag and leaves the default network policy in place.
+public_network_access: enabled
 description: Phi-3.5-mini QLoRA adapter. Entra auth only. Not created by CI.
-properties:
-  public_network_access: disabled
 tags:
   method: qlora

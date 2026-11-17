@@ -17,9 +17,15 @@ NOTE = "Email mira@fenwold.example or call 415-555-0199 about ORD-104488 using c
 
 
 def test_mlp_and_cnn_beat_the_majority_class_on_digits():
+    torch.manual_seed(123)
     result = run_digits(epochs=5, seed=0)
+    torch.manual_seed(999)
+    again = run_digits(epochs=1, seed=0)
+    torch.manual_seed(1)
+    same = run_digits(epochs=1, seed=0)
     assert result["mlp_beats_majority"] and result["cnn_beats_majority"]
     assert result["mlp"] > 0.5 and result["cnn"] > 0.5
+    assert again["mlp"] == same["mlp"] and again["cnn"] == same["cnn"]
 
 
 def test_bilstm_and_tiny_distilbert_beat_the_majority_intent():

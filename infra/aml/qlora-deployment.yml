@@ -1,12 +1,12 @@
 # Deployment of the registered adapter. WRITTEN, NOT RUN.
-# 4-bit Phi-3.5 inference fits a 16 GB GPU. The training job is the A100/H100; this deployment
-# uses a T4 so a serving test does not bill an A100 per hour. Switch instance_type to
-# Standard_NC24ads_A100_v4 if the T4 runs out of memory.
+# 4-bit Phi-3.5 inference (NF4 weights, float16 compute) fits a 16 GB T4. The training job is
+# the A100/H100. Pin the model version printed by `az ml model create`. A floating latest
+# version would serve an older adapter if a slower job registered afterwards.
 #   az ml online-deployment create -f infra/aml/qlora-deployment.yml -g rg-prefarena-dev -w mlw-prefarena-dev
 $schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.schema.json
 name: qlora
 endpoint_name: prefarena-qlora
-model: azureml:phi35-qlora-adapter@latest
+model: azureml:phi35-qlora-adapter:1
 instance_type: Standard_NC4as_T4_v3
 instance_count: 1
 environment:

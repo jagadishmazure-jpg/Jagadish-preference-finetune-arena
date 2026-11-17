@@ -57,26 +57,36 @@ def ppo_config_kwargs(output_dir: str, batch: int = 2, response_length: int = 64
     }
 
 
-class _StashingBackbone(nn.Module):
-    """Stand-in for the transformer body TRL's ``get_reward`` runs before ``model.score``."""
+class _IdBackbone(nn.Module):
+    """Stand-in for the transformer body TRL's ``get_reward`` runs before ``model.score``.
 
-    def __init__(self):
-        super().__init__()
-        self.anchor = nn.Parameter(torch.zeros(1), requires_grad=False)
-        self.last_input_ids = None
+    The token ids travel inside the hidden state this forward returns. ``score`` reads them from
+    that tensor, so two overlapping calls cannot swap each other's batches.
+    """
 
     def forward(self, input_ids=None, attention_mask=None, position_ids=None, output_hidden_states=False,
                 return_dict=True, use_cache=False, **_kwargs):
-        self.last_input_ids = input_ids
-        hidden = self.anchor.reshape(1, 1, 1) * 0 + input_ids.float().unsqueeze(-1)
-        hidden_states = (hidden,)
+        hidden = input_ids.float().unsqueeze(-1)
 
         class _Out:
             pass
 
         out = _Out()
-        out.hidden_states = hidden_states
+        out.hidden_states = (hidden,)
         return out
+
+
+def completion_text(decoded: str, marker: str = "<|assistant|>") -> str:
+    """The generated answer after the chat template's assistant marker.
+
+    The Bradley-Terry model was fitted on answer text. Scoring the whole query plus the answer
+    would let the prompt's words move the reward.
+    """
+    tail = decoded.rsplit(marker, 1)[1] if marker in decoded else decoded
+    for stop in ("<|end|>", "<|endoftext|>"):
+        if stop in tail:
+            tail = tail.split(stop, 1)[0]
+    return tail.strip()
 
 
 class BradleyTerryRewardModel(nn.Module):
@@ -94,10 +104,11 @@ class BradleyTerryRewardModel(nn.Module):
         super().__init__()
         self.bt = bt
         self.decode_batch = decode_batch
-        self.backbone = _StashingBackbone()
+        self.backbone = _IdBackbone()
 
     def score(self, hidden_states: torch.Tensor) -> torch.Tensor:
-        items = self.decode_batch(self.backbone.last_input_ids)
+        ids = hidden_states.detach().squeeze(-1).round().to(dtype=torch.long)
+        items = self.decode_batch(ids)
         values = torch.as_tensor(self.bt.reward(items), dtype=hidden_states.dtype, device=hidden_states.device)
         return values.reshape(-1, 1, 1).expand(-1, hidden_states.shape[1], 1).contiguous()
 
@@ -134,7 +145,7 @@ def build_trl_ppo_trainer(model_id: str, tokenizer, train_dataset, reward_model,
         reward_model=reward_model,
         train_dataset=train_dataset,
         value_model=value_model,
-        peft_config=build_peft_config(),
+        peft_config=build_peft_config(model_id),
     )
 
 
@@ -165,7 +176,9 @@ def _greedy_reward(model, groups, pad: int) -> float:
 def train_ppo(model, groups: list[list[dict]], cfg: dict, log: list, pad: int = 0) -> None:
     """PPO on a fixed completion set. Each candidate dict needs prompt_ids, response_ids and reward.
 
-    Adapters start at zero, so the first ratio is 1 and the first loss is ``-advantage``.
+    One rollout samples a completion per prompt and freezes its log-probability. Several optimiser
+    steps then reuse that rollout, so the probability ratio can leave 1 and the clip can engage.
+    The next rollout is collected only after those steps.
     """
     torch.manual_seed(cfg["seed"])
     apply_lora(model, r=cfg["lora_r"], alpha=cfg["lora_alpha"])
@@ -173,13 +186,12 @@ def train_ppo(model, groups: list[list[dict]], cfg: dict, log: list, pad: int = 
     with torch.no_grad():
         ref = [_logps(model, group, pad).tolist() for group in groups]
     set_adapter(model, True)
-    with torch.no_grad():
-        old = [_logps(model, group, pad).tolist() for group in groups]
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=cfg["lr"], weight_decay=0.0)
     generator = torch.Generator()
     generator.manual_seed(cfg["seed"])
     model.train()
     step = 0
+    clip = cfg.get("clip", PPO_CLIP)
     for _epoch in range(cfg["epochs"]):
         with torch.no_grad():
             detached = [_logps(model, group, pad) for group in groups]
@@ -188,28 +200,28 @@ def train_ppo(model, groups: list[list[dict]], cfg: dict, log: list, pad: int = 
             probs = torch.softmax(lp, dim=0)
             choices.append(int(torch.multinomial(probs, 1, generator=generator)))
         batch = [(groups[i][j]["prompt_ids"], groups[i][j]["response_ids"]) for i, j in enumerate(choices)]
-        new_lp, _ = seq_logps(model, batch, pad)
-        old_lp = torch.tensor([old[i][j] for i, j in enumerate(choices)], dtype=new_lp.dtype)
-        ref_lp = torch.tensor([ref[i][j] for i, j in enumerate(choices)], dtype=new_lp.dtype)
-        rewards = torch.tensor([groups[i][j]["reward"] for i, j in enumerate(choices)], dtype=new_lp.dtype)
+        old_lp = torch.tensor([float(detached[i][j]) for i, j in enumerate(choices)])
+        ref_lp = torch.tensor([ref[i][j] for i, j in enumerate(choices)])
+        rewards = torch.tensor([groups[i][j]["reward"] for i, j in enumerate(choices)])
         advantage = rewards - rewards.mean()
-        surrogate, ratio = ppo_loss(torch, new_lp, old_lp, advantage, cfg.get("clip", PPO_CLIP))
-        kl = kl_approx(torch, new_lp, ref_lp, "k3")
-        loss = surrogate.mean() + cfg.get("kl_coef", PPO_KL_COEF) * kl.mean()
-        opt.zero_grad()
-        loss.backward()
-        opt.step()
-        with torch.no_grad():
-            old = [_logps(model, group, pad).tolist() for group in groups]
-        step += 1
-        log.append({
-            "stage": "ppo",
-            "step": step,
-            "loss": round(float(loss.detach()), 4),
-            "reward": round(float(rewards.mean()), 4),
-            "kl": round(float(kl.mean().detach()), 4),
-            "clipfrac": round(float((ratio.detach() - 1).abs().gt(cfg.get("clip", PPO_CLIP) - 1e-6).float().mean()), 4),
-        })
+        for _inner in range(cfg.get("ppo_epochs", 4)):
+            new_lp, _mean = seq_logps(model, batch, pad)
+            surrogate, ratio = ppo_loss(torch, new_lp, old_lp.to(new_lp.dtype), advantage.to(new_lp.dtype), clip)
+            kl = kl_approx(torch, new_lp, ref_lp.to(new_lp.dtype), "k3")
+            loss = surrogate.mean() + cfg.get("kl_coef", PPO_KL_COEF) * kl.mean()
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+            step += 1
+            log.append({
+                "stage": "ppo",
+                "step": step,
+                "loss": round(float(loss.detach()), 4),
+                "reward": round(float(rewards.mean()), 4),
+                "kl": round(float(kl.mean().detach()), 4),
+                "ratio": round(float(ratio.detach().mean()), 4),
+                "clipfrac": round(float((ratio.detach() - 1).abs().gt(clip - 1e-6).float().mean()), 4),
+            })
     model.eval()
 
 

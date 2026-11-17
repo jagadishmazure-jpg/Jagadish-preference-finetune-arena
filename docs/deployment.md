@@ -69,9 +69,13 @@ Linux pay-as-you-go list price, eastus, checked 2026-11-17:
 | Standard_NC40ads_H100_v5 | $6.980 per hour | the same scripts, if the compute target is changed to `gpu-h100` |
 | Standard_NC4as_T4_v3 | serving only | `infra/aml/qlora-deployment.yml`, at least one instance, so it does not scale to zero |
 
-QLoRA uses PEFT, TRL 1.18.1 and bitsandbytes (`infra/aml/environment-gpu.yml`). The adapter is
-registered with `infra/aml/qlora-model.yml` and served by `scripts/score_qlora.py` on an endpoint
-with Entra auth (`infra/aml/qlora-endpoint.yml`). PPO pins TRL 1.11.0 because TRL 1.13 removed
+QLoRA uses PEFT, TRL 1.18.1 and bitsandbytes (`infra/aml/environment-gpu.yml`). Phi-3.5 attention
+adapters target the fused `qkv_proj` and `o_proj`. The adapter is registered with
+`infra/aml/qlora-model.yml`. The deployment pins version `:1` from that registration, and
+`scripts/score_qlora.py` loads the base in NF4 with float16 compute for the T4.
+The endpoint uses Entra auth. `public_network_access` is set at the top level of the endpoint
+file and left enabled, because a private endpoint is not in this repo; an authenticated caller
+can reach it. PPO pins TRL 1.11.0 because TRL 1.13 removed
 `PPOTrainer` (`infra/aml/environment-ppo.yml`). A Foundry managed fine-tune of `gpt-4o-mini` is
 described in `infra/aml/aoai-finetune.yml`; at the published training rate of $3.30 per million
 tokens the 203-row SFT set is a few cents, and that price should be rechecked before a job.

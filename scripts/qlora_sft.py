@@ -16,11 +16,11 @@ sys.path.insert(0, str(ROOT))
 
 from prefarena import data  # noqa: E402
 from prefarena.prefs import scored_candidates  # noqa: E402
-from prefarena.qlora import PHI35, build_sft_trainer, smoke_flags  # noqa: E402
-from prefarena.styles import DEPLOY_SYSTEM, user_message  # noqa: E402
+from prefarena.qlora import PHI35, build_sft_trainer, smoke_flags, supervised_messages  # noqa: E402
 
 
-def sft_rows(min_score: float = 0.8) -> list[dict]:
+def sft_message_rows(min_score: float = 0.8) -> list[dict]:
+    """Chosen answers as the same chat messages the scoring script sends, plus the assistant turn."""
     idx = data.prompt_index()
     rows = []
     for pid, cands in sorted(scored_candidates().items()):
@@ -29,9 +29,7 @@ def sft_rows(min_score: float = 0.8) -> list[dict]:
         best = sorted(cands, key=lambda c: (-c["score"]["total"], len(c["response"].split())))[0]
         if best["score"]["total"] < min_score:
             continue
-        prompt = idx[pid]
-        text = f"{DEPLOY_SYSTEM}\n\n{user_message(prompt)}\n\nAssistant: {best['response']}"
-        rows.append({"text": text})
+        rows.append({"messages": supervised_messages(idx[pid], best["response"])})
     return rows
 
 
@@ -49,11 +47,14 @@ def main() -> int:
         return 0
     try:
         from datasets import Dataset
+        from transformers import AutoTokenizer
     except ImportError:
         sys.exit("GPU QLoRA needs the packages in infra/aml/environment-gpu.yml (datasets, peft, trl, bitsandbytes).")
-    rows = sft_rows()
-    if not rows:
+    message_rows = sft_message_rows()
+    if not message_rows:
         sys.exit("no SFT rows")
+    tok = AutoTokenizer.from_pretrained(args.model)
+    rows = [{"text": tok.apply_chat_template(row["messages"], tokenize=False)} for row in message_rows]
     trainer = build_sft_trainer(args.model, Dataset.from_list(rows), args.output)
     trainer.train()
     trainer.save_model(args.output)

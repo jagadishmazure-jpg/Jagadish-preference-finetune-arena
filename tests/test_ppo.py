@@ -7,7 +7,14 @@ torch = pytest.importorskip("torch")
 from conftest import policy_prompt  # noqa: E402
 
 from prefarena.losses import ppo_loss  # noqa: E402
-from prefarena.ppo import BradleyTerryRewardModel, compare_with_dpo, reward_at_last_token, toy_groups, train_ppo  # noqa: E402
+from prefarena.ppo import (  # noqa: E402
+    BradleyTerryRewardModel,
+    compare_with_dpo,
+    completion_text,
+    reward_at_last_token,
+    toy_groups,
+    train_ppo,
+)
 from prefarena.reward import BT  # noqa: E402
 
 
@@ -58,6 +65,8 @@ def test_ppo_training_and_dpo_both_raise_the_preferred_completion():
     train_ppo(model, groups, {"lora_r": 4, "lora_alpha": 8, "seed": 0, "epochs": 4, "lr": 5e-3, "clip": 0.2,
                               "kl_coef": 0.02}, log)
     assert log and all(math_ok(row) for row in log)
+    # The rollout log-probabilities stay fixed for several updates, so the ratio leaves 1.
+    assert any(abs(row["ratio"] - 1) > 0.05 or row["clipfrac"] > 0 for row in log)
     result = compare_with_dpo(
         groups,
         {"lora_r": 4, "lora_alpha": 8, "seed": 0, "epochs": 12, "lr": 5e-3, "batch": 2, "beta": 0.5,
@@ -66,6 +75,12 @@ def test_ppo_training_and_dpo_both_raise_the_preferred_completion():
     )
     assert result["ppo_preferred_rose"] and result["dpo_preferred_rose"]
     assert result["dpo_final_pair_acc"] == 1.0
+
+
+def test_completion_text_drops_the_prompt():
+    decoded = "<|user|>How long is the return window?<|assistant|>Within 45 days [RET-1].<|end|>"
+    assert completion_text(decoded) == "Within 45 days [RET-1]."
+    assert completion_text("no marker here") == "no marker here"
 
 
 def math_ok(row: dict) -> bool:

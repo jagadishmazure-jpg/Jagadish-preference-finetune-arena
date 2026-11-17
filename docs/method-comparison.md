@@ -22,7 +22,7 @@ smollm_lora_trainable: 921600
 phi35_params: 3821079552
 phi35_fp16_gib: 7.117
 phi35_nf4_gib: 1.836
-phi35_lora_trainable: 12582912
+phi35_lora_trainable: 9437184
 a100_usd_per_hour: 3.673
 h100_usd_per_hour: 6.980
 aoai_model: gpt-4o-mini
@@ -43,7 +43,7 @@ aoai_accuracy: not_measured
 | `peft_lora_matches_handwritten` | The PEFT forward (`y = Wx + x A B * alpha/r`, B starts at 0, dropout 0) matches the hand-written adapter on the same seed, including the final loss. |
 | `qlora_smoke_loss_fell` | The base linears are replaced by an NF4 reconstruction (4-bit codes, double-quantised scales) and LoRA still reduces the loss. The matmul is fp32. bitsandbytes does the real 4-bit matmul on the GPU job. |
 | `ppo_preferred_rose` / `dpo_preferred_rose` | On a fixed set of answers, both PPO and DPO raise the probability of the completion the Bradley-Terry model scores higher. PPO samples; DPO uses the pair. |
-| `phi35_fp16_gib` / `phi35_nf4_gib` | Published parameter count times 2 bytes, or this repo's NF4 storage formula (4-bit codes plus blockwise 8-bit scales). bitsandbytes stores those scales in FP8, so a GPU footprint is close to this figure and not identical. This is weight storage, not measured VRAM. Activations and Adam states are extra. Rank-16 attention LoRA is about 12.6M trainable parameters. |
+| `phi35_fp16_gib` / `phi35_nf4_gib` | Published parameter count times 2 bytes, or this repo's NF4 storage formula (4-bit codes plus blockwise 8-bit scales). bitsandbytes stores those scales in FP8, so a GPU footprint is close to this figure and not identical. This is weight storage, not measured VRAM. Activations and Adam states are extra. Phi-3.5 fuses query, key and value into `qkv_proj`, so rank-16 attention LoRA is about 9.4M trainable parameters (`qkv_proj` and `o_proj`). |
 | `a100_usd_per_hour` / `h100_usd_per_hour` | Linux pay-as-you-go list price, eastus, checked 2026-11-17. Not a bill. |
 | `aoai_3_epoch_usd` | 203 chosen answers. The token count is `characters // 4` of the answer text only, not the policy prompt, so a real JSONL file costs more. 3 epochs at the published GPT-4o mini training rate of $3.30 per million tokens. Recheck Foundry before submitting. |
 | `gpu_phi35_accuracy` / `aoai_accuracy` | Not measured. A GPU job is not a substitute for the rubric, the safety rule, or the held-out split. |

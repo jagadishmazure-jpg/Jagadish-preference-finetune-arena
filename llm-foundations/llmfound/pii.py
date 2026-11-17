@@ -8,6 +8,7 @@ A statistical PERSON tagger is only used when the caller passes an already-loade
 from __future__ import annotations
 
 import re
+import threading
 
 PATTERNS = (
     ("EMAIL", re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")),
@@ -42,14 +43,18 @@ class _PiiComponent:
         return doc
 
 
+_FACTORY_LOCK = threading.Lock()
+
+
 def build_spacy(nlp=None):
     """Blank English pipeline plus the PII component. Imports spaCy."""
     import spacy
 
-    if not spacy.Language.has_factory("fenwold_pii"):
-        @spacy.Language.factory("fenwold_pii")
-        def _factory(nlp, name):
-            return _PiiComponent(nlp)
+    with _FACTORY_LOCK:
+        if not spacy.Language.has_factory("fenwold_pii"):
+            @spacy.Language.factory("fenwold_pii")
+            def _factory(nlp, name):
+                return _PiiComponent(nlp)
 
     nlp = nlp or spacy.blank("en")
     if "fenwold_pii" not in nlp.pipe_names:
