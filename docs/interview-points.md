@@ -27,6 +27,14 @@ you find that out cheaply.
 
 **"Why hand-write LoRA?"** About 60 lines, tested: B starts at zero so the model is unchanged at step
 0, switching adapters off gives DPO's reference model without a second copy, and merging keeps outputs.
+The PEFT formula matches it on a tiny model when dropout is 0. QLoRA adds NF4 and double quantisation
+of the scales; the Phi-3.5 job that uses the real PEFT, TRL and bitsandbytes libraries is written for
+an A100 or H100 and has not been run.
+
+**"Where does PPO sit next to DPO?"** DPO never samples. PPO samples a completion, scores it with the
+same Bradley-Terry model, and applies the clipped surrogate plus a KL term. On a tiny model both raise
+the probability of the answer the reward model prefers. TRL removed `PPOTrainer` in 1.13, so the GPU
+job pins 1.11.0.
 
 **"What would you do with a GPU and a week?"** More unsafe pairs, a KL or SFT term in DPO, several
 seeds, a larger model, a stronger judge with the same bias checks, and human labels on a sample to

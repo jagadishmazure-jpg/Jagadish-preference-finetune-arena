@@ -50,7 +50,8 @@ def test_count() -> int:
 
 def main() -> int:
     metrics = json.loads((ROOT / "results/metrics.json").read_text())
-    files = [ROOT / "README.md", *sorted((ROOT / "docs").rglob("*.md"))]
+    files = [ROOT / "README.md", *sorted((ROOT / "docs").rglob("*.md")),
+             *sorted((ROOT / "llm-foundations").rglob("*.md"))]
     problems, n_marks = [], 0
     n = test_count()
     for f in files:

@@ -1,0 +1,2 @@
+# The CPU smoke uses the repository requirements (numpy, scikit-learn, spaCy, pytest)
+# plus requirements-train.txt (PyTorch CPU, transformers). No extra pins.

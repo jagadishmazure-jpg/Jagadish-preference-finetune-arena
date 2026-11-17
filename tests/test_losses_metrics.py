@@ -5,7 +5,7 @@ import math
 import numpy as np
 import pytest
 
-from prefarena.losses import bradley_terry_prob, dpo_loss, log_odds, orpo_loss
+from prefarena.losses import bradley_terry_prob, dpo_loss, kl_approx, log_odds, orpo_loss, ppo_loss
 from prefarena.metrics import cohen_kappa, mcnemar_exact, percentile, rate, wilson
 
 
@@ -31,6 +31,20 @@ def test_orpo_log_odds_is_stable_near_zero_and_loss_prefers_chosen():
     good, _ = orpo_loss(np, np.array([-0.5]), np.array([-3.0]))
     bad, _ = orpo_loss(np, np.array([-3.0]), np.array([-0.5]))
     assert good[0] < bad[0]
+
+
+def test_ppo_loss_is_the_clipped_surrogate_and_k3_is_non_negative():
+    logp, old, adv = np.array([0.0, 0.0]), np.array([0.0, 0.0]), np.array([1.0, -1.0])
+    loss, ratio = ppo_loss(np, logp, old, adv, clip=0.2)
+    assert ratio.tolist() == [1.0, 1.0]
+    assert loss.tolist() == pytest.approx([-1.0, 1.0])
+    # A large ratio with a positive advantage is clipped at 1.2, so the loss is -1.2 not -exp(2).
+    clipped, ratio = ppo_loss(np, np.array([2.0]), np.array([0.0]), np.array([1.0]), clip=0.2)
+    assert ratio[0] == pytest.approx(math.exp(2)) and clipped[0] == pytest.approx(-1.2)
+    assert kl_approx(np, np.array([0.4]), np.array([0.0]), "k3")[0] > 0
+    assert kl_approx(np, np.array([0.0]), np.array([0.0]), "k3")[0] == pytest.approx(0)
+    with pytest.raises(ValueError):
+        kl_approx(np, np.array([0.0]), np.array([0.0]), "k2")
 
 
 def test_bradley_terry_is_symmetric():

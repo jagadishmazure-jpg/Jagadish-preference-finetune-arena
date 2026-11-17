@@ -1,7 +1,7 @@
 [project]
 name = "preference-finetune-arena"
 version = "0.1.0"
-description = "Preference data, reward models and DPO/ORPO LoRA tuning of a tiny open model on CPU, with bias-aware evaluation."
+description = "Preference data, reward models and DPO/ORPO LoRA tuning of a tiny open model on CPU, with QLoRA and PPO smokes and a separate foundations folder."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

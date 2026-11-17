@@ -32,3 +32,25 @@ def orpo_loss(xp, mean_c, mean_r, lam: float = 0.5):
 def bradley_terry_prob(xp, r_a, r_b):
     """P(a preferred over b) under a Bradley-Terry reward model."""
     return 1 / (1 + xp.exp(-(r_a - r_b)))
+
+
+def ppo_loss(xp, logp, old_logp, advantage, clip: float = 0.2):
+    """Clipped PPO surrogate. Sequence log-probs in, per-sequence advantages in.
+
+    loss = -min(ratio * A, clip(ratio, 1-e, 1+e) * A), ratio = exp(logp - old_logp).
+    old_logp is treated as a constant by the caller (detach it before the backward).
+    """
+    ratio = xp.exp(logp - old_logp)
+    unclipped = ratio * advantage
+    clipped = xp.clip(ratio, 1.0 - clip, 1.0 + clip) * advantage
+    return -xp.minimum(unclipped, clipped), ratio
+
+
+def kl_approx(xp, logp, ref_logp, estimator: str = "k3"):
+    """Schulman KL(pi || ref) estimators used by TRL's PPO (k1 or k3). k3 is non-negative."""
+    delta = logp - ref_logp
+    if estimator == "k1":
+        return delta
+    if estimator != "k3":
+        raise ValueError(f"unknown KL estimator {estimator}")
+    return (xp.exp(delta) - 1) - delta

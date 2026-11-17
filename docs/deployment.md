@@ -55,7 +55,34 @@ resource group to stop all charges. Check current prices and get approval before
 4. A required reviewer on the `dev` environment.
 5. `DEPLOY_ENABLED=true`, then run **deploy** by hand.
 
-## Planned, not built
+## GPU jobs (written, not run)
 
-A registered model and a managed online endpoint for the tuned adapter, a managed fine-tuning job in
-Microsoft Foundry for a larger model, private networking, and comparing cloud and local results.
+These are command jobs and an online endpoint. They are not in the Terraform, and CI does not create
+them. The clusters `gpu-a100` (`Standard_NC24ads_A100_v4`) and `gpu-h100`
+(`Standard_NC40ads_H100_v5`) would be created by hand, min nodes 0, max 1, no SSH, local auth off.
+
+Linux pay-as-you-go list price, eastus, checked 2026-11-17:
+
+| SKU | Price | What would run |
+|---|---|---|
+| Standard_NC24ads_A100_v4 | $3.673 per hour | `infra/aml/qlora-job.yml` (QLoRA SFT), `infra/aml/ppo-job.yml` |
+| Standard_NC40ads_H100_v5 | $6.980 per hour | the same scripts, if the compute target is changed to `gpu-h100` |
+| Standard_NC4as_T4_v3 | serving only | `infra/aml/qlora-deployment.yml`, at least one instance, so it does not scale to zero |
+
+QLoRA uses PEFT, TRL 1.18.1 and bitsandbytes (`infra/aml/environment-gpu.yml`). Phi-3.5 attention
+adapters target the fused `qkv_proj` and `o_proj`. The adapter is registered with
+`infra/aml/qlora-model.yml`. The deployment pins version `:1` from that registration, and
+`scripts/score_qlora.py` loads the base in NF4 with float16 compute for the T4.
+The endpoint uses Entra auth. `public_network_access` is set at the top level of the endpoint
+file and left enabled, because a private endpoint is not in this repo; an authenticated caller
+can reach it. PPO pins TRL 1.11.0 because TRL 1.13 removed
+`PPOTrainer` (`infra/aml/environment-ppo.yml`). A Foundry managed fine-tune of `gpt-4o-mini` is
+described in `infra/aml/aoai-finetune.yml`; at the published training rate of $3.30 per million
+tokens the 203-row SFT set is a few cents, and that price should be rechecked before a job.
+Nothing in this section has been submitted. The comparison that CI does run is
+[method-comparison.md](method-comparison.md).
+
+## Still not built
+
+Private networking for the GPU cluster, and a measured comparison of cloud and local accuracy on
+Phi-3.5-mini. The CPU smoke is the check that the training code learns at all.
